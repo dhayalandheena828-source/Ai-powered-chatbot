@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARIA — AI Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0c10;
+      --surface:   #10131a;
+      --panel:     #161b24;
+      --border:    #1e2533;
+      --accent:    #00e5a0;
+      --accent2:   #0077ff;
+      --warn:      #ff6b6b;
+      --text:      #d4dae8;
+      --muted:     #5a6278;
+      --user-bg:   #0d2233;
+      --ai-bg:     #0e1a14;
+      --mono:      'Space Mono', monospace;
+      --sans:      'DM Sans', sans-serif;
+      --radius:    12px;
+      --glow:      0 0 20px rgba(0,229,160,.15);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-rows: 64px 1fr auto;
+      height: 100vh;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────  */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: var(--glow);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 12px rgba(0,229,160,.2); }
+      50%      { box-shadow: 0 0 28px rgba(0,229,160,.5); }
+    }
+
+    .logo h1 {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: 3px;
+      color: var(--accent);
+    }
+
+    .logo span {
+      font-family: var(--sans);
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+    .status-dot.offline { background: var(--warn); animation: none; }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .3; }
+    }
+
+    .status-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .btn-clear {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .2s;
+    }
+    .btn-clear:hover {
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+
+    /* ── Chat Window ─────────────────────────────────────── */
+    .chat-window {
+      overflow-y: auto;
+      padding: 24px 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-window::-webkit-scrollbar { width: 4px; }
+    .chat-window::-webkit-scrollbar-track { background: transparent; }
+    .chat-window::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Welcome Screen ──────────────────────────────────── */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 16px;
+      padding: 40px;
+      text-align: center;
+      animation: fadeIn .6s ease;
+    }
+
+    .welcome-icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 0 40px rgba(0,229,160,.2);
+      margin-bottom: 8px;
+    }
+
+    .welcome h2 {
+      font-family: var(--mono);
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+
+    .welcome p {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 400px;
+      line-height: 1.7;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--panel);
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,229,160,.05);
+    }
+
+    /* ── Message Bubbles ─────────────────────────────────── */
+    .msg {
+      display: flex;
+      gap: 12px;
+      animation: fadeUp .3s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user  { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .msg.user  .avatar { background: linear-gradient(135deg,#0d2233,#0a3a5c); border: 1px solid var(--accent2); color: var(--accent2); }
+    .msg.ai    .avatar { background: linear-gradient(135deg,var(--accent),var(--accent2)); color: #000; }
+
+    .bubble {
+      max-width: 72%;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user .bubble {
+      background: var(--user-bg);
+      border: 1px solid rgba(0,119,255,.25);
+      border-top-right-radius: 4px;
+      color: #c8d8f0;
+    }
+
+    .msg.ai .bubble {
+      background: var(--ai-bg);
+      border: 1px solid rgba(0,229,160,.15);
+      border-top-left-radius: 4px;
+    }
+
+    .meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 6px;
+      padding: 0 4px;
+    }
+
+    .msg.user .meta { text-align: right; }
+
+    /* ── Typing indicator ──────────────────────────────────── */
+    .typing-indicator {
+      display: flex;
+      gap: 12px;
+      animation: fadeUp .3s ease;
+    }
+    .typing-indicator .avatar { background: linear-gradient(135deg,var(--accent),var(--accent2)); color: #000; }
+    .typing-bubble {
+      background: var(--ai-bg);
+      border: 1px solid rgba(0,229,160,.15);
+      border-radius: var(--radius);
+      border-top-left-radius: 4px;
+      padding: 18px 20px;
+      display: flex; gap: 6px; align-items: center;
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); opacity: .4; }
+      30%          { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Input Area ──────────────────────────────────────── */
+    .input-area {
+      padding: 16px 24px 24px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,160,.08);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      max-height: 140px;
+      min-height: 24px;
+    }
+    textarea::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all .2s;
+      color: #000;
+    }
+    .send-btn:hover:not(:disabled) {
+      background: #00ffb3;
+      box-shadow: 0 0 16px rgba(0,229,160,.4);
+    }
+    .send-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 4px 0;
+    }
+
+    .hint {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .token-count {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ── Error Toast ────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #2a0f0f;
+      border: 1px solid var(--warn);
+      color: var(--warn);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      <div>
+        <h1>ARIA</h1>
+        <span>Adaptive Reasoning Intelligence Assistant</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-label" id="statusLabel">ONLINE</span>
+      <button class="btn-clear" onclick="clearChat()">CLEAR</button>
+    </div>
+  </header>
+
+  <!-- Chat Window -->
+  <div class="chat-window" id="chatWindow">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">🤖</div>
+      <h2>ARIA ONLINE</h2>
+      <p>I'm your AI assistant powered by Claude. Ask me anything — coding, analysis, creative writing, or just a conversation.</p>
+      <div class="chips">
+        <div class="chip" onclick="sendQuick('Explain machine learning in simple terms')">🧠 Explain ML</div>
+        <div class="chip" onclick="sendQuick('Write a Python function to sort a list')">🐍 Python snippet</div>
+        <div class="chip" onclick="sendQuick('What are the best practices for data analysis?')">📊 Data analysis tips</div>
+        <div class="chip" onclick="sendQuick('Help me write a professional email')">✉️ Email writing</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea
+        id="userInput"
+        rows="1"
+        placeholder="Message ARIA..."
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+    <div class="input-footer">
+      <span class="hint">Enter to send · Shift+Enter for newline</span>
+      <span class="token-count" id="tokenCount">0 tokens used</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Error Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────
+  let messages = [];
+  let totalTokens = 0;
+  let isLoading = false;
+
+  const chatWindow  = document.getElementById('chatWindow');
+  const userInput   = document.getElementById('userInput');
+  const sendBtn     = document.getElementById('sendBtn');
+  const tokenCount  = document.getElementById('tokenCount');
+  const statusDot   = document.getElementById('statusDot');
+  const statusLabel = document.getElementById('statusLabel');
+  const welcome     = document.getElementById('welcome');
+  const toast       = document.getElementById('toast');
+
+  // ── Health check ──────────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const res = await fetch('/api/health');
+      const data = await res.json();
+      if (!data.api_key_configured) {
+        setStatus(false);
+        showToast('API key not set — set ANTHROPIC_API_KEY env variable');
+      }
+    } catch {
+      setStatus(false);
+    }
+  }
+
+  function setStatus(online) {
+    statusDot.className = 'status-dot' + (online ? '' : ' offline');
+    statusLabel.textContent = online ? 'ONLINE' : 'OFFLINE';
+  }
+
+  // ── Send message ──────────────────────────────────────────
+  async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text || isLoading) return;
+
+    // Hide welcome screen
+    welcome?.remove();
+
+    // Append user message
+    messages.push({ role: 'user', content: text });
+    appendBubble('user', text);
+    userInput.value = '';
+    autoResize(userInput);
+
+    // Show typing
+    const typingEl = showTyping();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+
+      // Remove typing, append AI reply
+      typingEl.remove();
+      messages.push({ role: 'assistant', content: data.reply });
+      appendBubble('ai', data.reply, data.usage);
+
+      totalTokens += (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+      tokenCount.textContent = `${totalTokens.toLocaleString()} tokens used`;
+
+    } catch (err) {
+      typingEl.remove();
+      showToast(err.message);
+      // Remove the user message from history if it failed
+      messages.pop();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function sendQuick(text) {
+    userInput.value = text;
+    sendMessage();
+  }
+
+  // ── DOM helpers ───────────────────────────────────────────
+  function appendBubble(role, text, usage) {
+    const el = document.createElement('div');
+    el.className = `msg ${role}`;
+
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const tokens = usage ? ` · ${usage.output_tokens} tokens` : '';
+    const label = role === 'user' ? 'YOU' : 'ARIA';
+    const avatarText = role === 'user' ? 'U' : '🤖';
+
+    el.innerHTML = `
+      <div class="avatar">${avatarText}</div>
+      <div>
+        <div class="bubble">${escapeHtml(text)}</div>
+        <div class="meta">${label} · ${time}${tokens}</div>
+      </div>
+    `;
+
+    chatWindow.appendChild(el);
+    scrollToBottom();
+  }
+
+  function showTyping() {
+    const el = document.createElement('div');
+    el.className = 'typing-indicator';
+    el.innerHTML = `
+      <div class="avatar">🤖</div>
+      <div class="typing-bubble">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    `;
+    chatWindow.appendChild(el);
+    scrollToBottom();
+    return el;
+  }
+
+  function scrollToBottom() {
+    chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+  }
+
+  function setLoading(val) {
+    isLoading = val;
+    sendBtn.disabled = val;
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Clear chat ─────────────────────────────────────────────
+  function clearChat() {
+    messages = [];
+    totalTokens = 0;
+    tokenCount.textContent = '0 tokens used';
+
+    // Remove all message elements
+    [...chatWindow.children].forEach(c => {
+      if (!c.classList.contains('welcome')) c.remove();
+    });
+
+    // Restore welcome if not present
+    if (!document.getElementById('welcome')) {
+      const w = document.createElement('div');
+      w.className = 'welcome';
+      w.id = 'welcome';
+      w.innerHTML = `
+        <div class="welcome-icon">🤖</div>
+        <h2>ARIA ONLINE</h2>
+        <p>Chat cleared. Ready for a fresh conversation!</p>
+        <div class="chips">
+          <div class="chip" onclick="sendQuick('Explain machine learning in simple terms')">🧠 Explain ML</div>
+          <div class="chip" onclick="sendQuick('Write a Python function to sort a list')">🐍 Python snippet</div>
+          <div class="chip" onclick="sendQuick('What are the best practices for data analysis?')">📊 Data analysis tips</div>
+          <div class="chip" onclick="sendQuick('Help me write a professional email')">✉️ Email writing</div>
+        </div>
+      `;
+      chatWindow.appendChild(w);
+    }
+  }
+
+  // ── Input helpers ─────────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  checkHealth();
+  userInput.focus();
+</script>
+</body>
+</html>
